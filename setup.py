@@ -11,7 +11,7 @@ setup(
     description="A python library to retrieve energy statistics from your Alpha ESS inverter by polling the Official Alpha ESS Open API.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/CharlesGillanders/alphaess",
+    url="https://github.com/CharlesGillanders/alphaess-openAPI",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
