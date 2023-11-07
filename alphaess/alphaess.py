@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta
+from datetime import date
 import time
 import aiohttp
 import logging
@@ -68,6 +68,19 @@ class alphaess:
         resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={queryDate}"
 
         logger.debug(f"Trying to get one day power information for system {sysSn}")
+
+        data = await self.__get_data(resource)
+
+        if data is not None:
+            return data
+        else:
+            return None
+        
+    async def getSumDataForCustomer(self,sysSn) -> Optional(list):
+        """"According SN to get System Summary data"""
+        resource = f"{BASEURL}/getSumDataForCustomer?sysSn={sysSn}"
+
+        logger.debug(f"Trying to get system summary data for system {sysSn}")
 
         data = await self.__get_data(resource)
 
@@ -223,18 +236,68 @@ class alphaess:
         try:
             alldata = []
             units = await self.getESSList()
-            logger.debug(alldata)
 
             for unit in units:
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
-                    unit['OneDayEnergy'] = await self.getOneDateEnergyBySn(serial,date.today().strftime("%Y-%m-%d"))
-                    unit['RealTimePower'] = await self.getLastPowerData(serial)
+                    unit ['SumData'] = await self.getSumDataForCustomer(serial)
+                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial,date.today().strftime("%Y-%m-%d"))
+                    unit['LastPower'] = await self.getLastPowerData(serial)
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
                     alldata.append(unit)
+                    logger.debug(alldata)
             return alldata
+        
+
 
         except Exception as e:
             logger.error(e)
             raise
+
+    async def authenticate(self) -> Optional(list):
+        """Test Authentication to AlphaESS Open API By Calling getESSList()"""
+
+        try:
+            success = False
+            units = await self.getESSList()
+            for unit in units:
+                if "sysSn" in unit:
+                    success = True
+            return success
+        
+        except Exception as e:
+            logger.error(e)
+            raise
+
+    async def setbatterycharge(self, serial, enabled, cp1start, cp1end, cp2start, cp2end, chargestopsoc):
+        """Set battery grid charging"""
+        settings = []
+
+        settings["sysSn"] = serial
+        settings["gridCharge"] = int(enabled)
+        settings["timeChaf1"] = cp1start
+        settings["timeChae1"] = cp1end
+        settings["timeChaf2"] = cp2start
+        settings["timeChae2"] = cp2end
+        settings["batHighCap"] = int(chargestopsoc)
+  
+
+        logger.debug(f"Trying to set charge settings for system {serial}")
+        await self.__post_data(path="updateChargeConfigInfo", json=settings)
+
+    async def setbatterydischarge(self, serial, enabled, dp1start, dp1end, dp2start, dp2end, dischargecutoffsoc):
+        """Set battery discharging"""
+
+        settings = []
+        
+        settings["sysSn"] = serial
+        settings["ctrDis"] = int(enabled)
+        settings["timeDisf1"] = dp1start
+        settings["timeDise1"] = dp1end
+        settings["timeDisf2"] = dp2start
+        settings["timeDise2"] = dp2end
+        settings["batUseCap"] = int(dischargecutoffsoc)
+
+        logger.debug(f"Trying to set discharge settings for system {serial}")
+        await self.__post_data(path="updateDisChargeConfigInfo", json=settings)

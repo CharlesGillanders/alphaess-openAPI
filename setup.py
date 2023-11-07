@@ -4,8 +4,8 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="alphaess",
-    version="0.1.0",
+    name="alphaessopenapi",
+    version="0.0.1",
     author="Charles Gillanders",
     author_email="charles@charlesgillanders.com",
     description="A python library to retrieve energy statistics from your Alpha ESS inverter by polling the Official Alpha ESS Open API.",

@@ -1,13 +1,12 @@
 ## alphaess
-This Python library uses the Alpha ESS Open API to retrieve data on your Alpha ESS inverter, photovoltaic panels, and battery if you have one.
+This Python library uses the Alpha ESS Open API to retrieve data on your Alpha ESS inverter, photovoltaic panels, and battery if you have one.  This library is principally intended for use by my Home Assistant integration [https://github.com/CharlesGillanders/homeassistant-alphaESS]
 
-## Usage
+## How to use
 
-Create a new Alpha ESS instance, log in, retrieve a list of Alpha ESS systems and request energy statistics of one of those Alpha ESS systems. 
+### 1. Sign up for an open API account
+Register at https://open.alphaess.com/ for a (free) account to get your Developer ID (AppID) and Developer Secret (AppSecret).
 
-## API
-
-Currently this package uses the beta of the Open API from AlphaESS information on that API is available at https://github.com/alphaess-developer/alphacloud_open_api
+Once registered, add your battery/inverter to the developer account via the web UI.
 
 ### Note
 
@@ -28,6 +27,24 @@ There are public methods in this module that duplicate the AlphaESS OpenAPI and 
 
 All of the above are documented at https://open.alphaess.com/developmentManagement/apiList (Registration required)
 
-There is also a method intended for use by my Home Assistant integration [https://github.com/CharlesGillanders/homeassistant-alphaESS]
++ getdata() - Attempts to get statistical energy data for use in Home Assistant for all registered Alpha ESS systems - will return None if there are issues retrieving data from the Alpha ESS API.
++ authenticate - Attempts to use https://openapi.alphaess.com/api/getEssList to validate authentication to the ALpha ESS API - will return True or False.
++ setbatterycharge (serial, enabled, dp1start, dp1end, dp2start, dp2end, chargecutoffsoc)
+**Parameters:**
+- `chargecutoffsoc` (float) % to stop charging from the grid at 
+- `enabled` (bool) True to charge from the grid, False do not
+- `dp1start` (`datetime.time`) The start time of charging period 1 (the minutes must be one of :00, :15, :30, :45)
+- `dp1end` (`datetime.time`) The end time of charging period 1 (the minutes must be one of :00, :15, :30, :45)
+- `dp2start` (`datetime.time`) The start time of charging period 2 (the minutes must be one of :00, :15, :30, :45)
+- `dp2end` (`datetime.time`) The end time of charging period 2 (the minutes must be one of :00, :15, :30, :45)
+- `serial` (str) The serial number of the battery/inverter.
 
-`getdata()` - Attempts to get a collection of data on all registered Alpha ESS systems - will return None if there are issues retrieving data from the Alpha ESS API.
++ setbatterydischarge (serial, enabled, dp1start, dp1end, dp2start, dp2end, dischargecutoffsoc)
+**Parameters:**
+- `dischargecutoffsoc` (float) % to stop discharging from the battery at 
+- `enabled` (bool) True to discharge from the battery, False do not
+- `dp1start` (`datetime.time`) The start time of charging period 1 (the minutes must be one of :00, :15, :30, :45)
+- `dp1end` (`datetime.time`) The end time of charging period 1 (the minutes must be one of :00, :15, :30, :45)
+- `dp2start` (`datetime.time`) The start time of charging period 2 (the minutes must be one of :00, :15, :30, :45)
+- `dp2end` (`datetime.time`) The end time of charging period 2 (the minutes must be one of :00, :15, :30, :45)
+- `serial` (str) The serial number of the battery/inverter.

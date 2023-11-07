@@ -1,4 +1,3 @@
 aiohttp~=3.8.1
 voluptuous~=0.13.1
 setuptools~=60.2.0
-alphaess~=0.0.4

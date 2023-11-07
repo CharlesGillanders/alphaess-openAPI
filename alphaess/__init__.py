@@ -1,4 +1,4 @@
-"""Get data from AlphaESS's API."""
+"""Get data from AlphaESS's Open API."""
 
 
 
