@@ -105,6 +105,8 @@ async def main():
                         ctrDis = 1
                 await client.updateDisChargeConfigInfo(serial, batUseCap, ctrDis, timeDise1, timeDise2, timeDisf1, timeDisf2)
 
+            await client.getdata()
+
     except Exception as e:
         logger.error(e)
 
