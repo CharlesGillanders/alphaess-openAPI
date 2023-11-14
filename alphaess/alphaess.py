@@ -143,7 +143,7 @@ class alphaess:
             "timeChaf2": timeChaf2       
             }
 
-        logger.debug(f"Trying to set charging information for system {sysSn}")
+        logger.debug(f"Trying to set charging information for system {sysSn}, {settings}")
 
         data = await self.__post_data(resource,settings)
 
@@ -167,7 +167,7 @@ class alphaess:
             "timeDisf2": timeDisf2       
             }
 
-        logger.debug(f"Trying to set discharging information for system {sysSn}")
+        logger.debug(f"Trying to set discharging information for system {sysSn}, {settings}")
 
         data = await self.__post_data(resource,settings)
 
