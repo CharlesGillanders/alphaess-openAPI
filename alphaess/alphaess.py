@@ -1,4 +1,3 @@
-from datetime import date
 import time
 import aiohttp
 import logging
@@ -241,7 +240,7 @@ class alphaess:
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
                     unit ['SumData'] = await self.getSumDataForCustomer(serial)
-                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial,date.today().strftime("%Y-%m-%d"))
+                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial,time.strftime("%Y-%m-%d"))
                     unit['LastPower'] = await self.getLastPowerData(serial)
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
