@@ -90,8 +90,11 @@ class alphaess:
     
     async def getOneDateEnergyBySn(self,sysSn,queryDate) -> Optional(list):
         """According SN to get System Energy Data"""
-        resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
+        logger.debug(f"DATE: {queryDate}")
+        localdate = time.strftime("%Y-%m-%d")
+        logger.debug(f"DATE: {localdate}")
 
+        resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdate}"
         logger.debug(f"Trying to get one day energy information for system {sysSn}")
 
         data = await self.__get_data(resource)
@@ -240,7 +243,7 @@ class alphaess:
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
                     unit ['SumData'] = await self.getSumDataForCustomer(serial)
-                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial,time.strftime("%Y-%m-%d"))
+                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial, time.strftime("%Y-%m-%d"))
                     unit['LastPower'] = await self.getLastPowerData(serial)
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
