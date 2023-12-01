@@ -202,6 +202,7 @@ class alphaess:
                     if json_response["data"] is not None:
                         return json_response["data"]
                     else:
+                        logger.debug(f"Unexpected json_response : {json_response} when calling {path}")
                         return None
                 
         except Exception as e:
