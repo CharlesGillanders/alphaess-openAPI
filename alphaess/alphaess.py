@@ -192,6 +192,9 @@ class alphaess:
                     json = json
                 )
 
+                if response.status != 200:
+                    logger.debug(f"Unexpected response recevied: {response.status} when calling {path}")
+                    
                 if response.status == 200:
                     json_response = await response.json()
 
