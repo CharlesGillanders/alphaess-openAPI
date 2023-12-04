@@ -61,6 +61,7 @@ class alphaess:
 
             data = await self.__get_data(resource)
 
+
             if data is not None:
                 return data
             else:
@@ -263,11 +264,11 @@ class alphaess:
                     json_response = await response.json()
               
                 if "msg" in json_response and json_response["msg"] == "Success":
-                    if json_response["data"] is not None:
+                    if json_response["data"] is None:
                         return json_response["data"]
                     else:
                         logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                        return None
+                        return json_response["data"]
                 
         except Exception as e:
             logger.error(e)
