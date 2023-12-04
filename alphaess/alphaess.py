@@ -61,7 +61,6 @@ class alphaess:
 
             data = await self.__get_data(resource)
 
-
             if data is not None:
                 return data
             else:
@@ -76,8 +75,13 @@ class alphaess:
         try:
             resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={queryDate}"
 
-            logger.debug(f"Trying to call {resource}")
-
+            localdateencapsulated = time.strftime("%Y-%m-%d")
+            if queryDate == localdateencapsulated:
+                logger.debug(f"Trying to call {resource}")
+            else:
+                resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
+                logger.debug(f"Trying to call {resource} with adjusted date")
+            
             data = await self.__get_data(resource)
 
             if data is not None:
@@ -114,13 +118,21 @@ class alphaess:
             logger.debug(f"DATE: {localdate}")
 
             resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdate}"
-            logger.debug(f"Trying to call {resource}")
+            localdateencapsulated = time.strftime("%Y-%m-%d")
+
+            if queryDate == localdateencapsulated:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
+                logger.debug(f"Trying to call {resource}")
+            else:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
+                logger.debug(f"Trying to call {resource} with adjusted date")
 
             data = await self.__get_data(resource)
 
             if data is not None:
                 return data
             else:
+                logger.warning(f"Unexpected None: returned when calling {resource}")
                 return None
             
         except Exception as e:
@@ -233,12 +245,16 @@ class alphaess:
                 if response.status == 200:
                     json_response = await response.json()
 
-                if "msg" in json_response and json_response["msg"] == "Success":
+                if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
+                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                    return None
+                else:
                     if json_response["data"] is not None:
                         return json_response["data"]
                     else:
                         logger.error(f"Unexpected json_response : {json_response} when calling {path}")
                         return None
+                
                 
         except Exception as e:
             logger.error(e)
