@@ -73,9 +73,15 @@ class alphaess:
     async def getOneDayPowerBySn(self,sysSn,queryDate) -> Optional(list):
         """According SN to get system power data"""
         try:
-            resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={queryDate}"
 
-            logger.debug(f"Trying to call {resource}")
+            localdateencapsulated = time.strftime("%Y-%m-%d")
+
+            if queryDate == localdateencapsulated:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
+                logger.debug(f"Trying to call {resource}")
+            else:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
+                logger.debug(f"Trying to call {resource} with adjusted date")
 
             data = await self.__get_data(resource)
 
@@ -108,12 +114,16 @@ class alphaess:
     async def getOneDateEnergyBySn(self,sysSn,queryDate) -> Optional(list):
         """According SN to get System Energy Data"""
         try:
-            logger.debug(f"DATE: {queryDate}")
-            localdate = time.strftime("%Y-%m-%d")
-            logger.debug(f"DATE: {localdate}")
 
-            resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdate}"
-            logger.debug(f"Trying to call {resource}")
+            localdateencapsulated = time.strftime("%Y-%m-%d")
+
+            if queryDate == localdateencapsulated:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
+                logger.debug(f"Trying to call {resource}")
+            else:
+                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
+                logger.debug(f"Trying to call {resource} with adjusted date")
+
 
             data = await self.__get_data(resource)
 
