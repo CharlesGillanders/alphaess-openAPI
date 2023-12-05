@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "94a36544-c469-4ffb-b92d-063cc7b083df",
+		"_postman_id": "38cf5b33-efe8-4765-9a4d-247613b2a3a6",
 		"name": "AlphaESS Open API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "23152579"
+		"_exporter_id": "11219653"
 	},
 	"item": [
 		{
@@ -32,6 +32,40 @@
 					],
 					"path": [
 						"getEssList"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getSumData",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{BaseUrl}}/getSumDataForCustomer?sysSn={{SysSn}}",
+					"host": [
+						"{{BaseUrl}}"
+					],
+					"path": [
+						"getSumDataForCustomer"
+					],
+					"query": [
+						{
+							"key": "sysSn",
+							"value": "{{SysSn}}"
+						}
 					]
 				}
 			},
@@ -335,7 +369,8 @@
 				"exec": [
 					"// Set current date for statistics",
 					"var moment = require('moment');",
-					"pm.collectionVariables.set('CurrentDate', moment.utc().format((\"YYYY-MM-DD\")));",
+					"var todayDate = new Date(); todayDate.setMinutes(todayDate.getMinutes() - todayDate.getTimezoneOffset()); todayDate.toISOString().slice(0,10)",
+					"pm.collectionVariables.set('CurrentDate', todayDate);",
 					"",
 					"var appId = pm.collectionVariables.get(\"AppId\");",
 					"var appSecret = pm.collectionVariables.get(\"AppSecret\");",
