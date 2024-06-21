@@ -12,7 +12,13 @@ BASEURL = "https://openapi.alphaess.com/api"
 class alphaess:
     """Class for Alpha ESS."""
 
-    def __init__(self,appID,appSecret) -> None:
+    def __init__(
+            self,
+            appID,
+            appSecret,
+            session: aiohttp.ClientSession | None = None,
+            timeout: int = 30
+        ) -> None:
         """Initialize."""
         self.appID = appID
         self.appSecret = appSecret
@@ -20,6 +26,14 @@ class alphaess:
         self.expiresin = None
         self.tokencreatetime = None
         self.refreshtoken = None
+        self.session = session or aiohttp.ClientSession()
+        self._created_session = not session
+        self.timeout = timeout
+
+    async def close(self) -> None:
+        """Close the AlphaESS API client."""
+        if self._created_session:
+            await self.session.close()
 
     def __headers(self):
         timestamp = str(int(time.time()))
@@ -42,12 +56,7 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource}")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                return None
+            return await self.api_get(resource)
             
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
@@ -59,12 +68,7 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource}")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                return None
+            return await self.api_get(resource)
         
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
@@ -82,13 +86,7 @@ class alphaess:
                 resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
                 logger.debug(f"Trying to call {resource} with adjusted date")
             
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                logger.warning(f"Unexpected None: returned when calling {resource}")
-                return None
+            return await self.api_get(resource)
             
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
@@ -100,13 +98,8 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource}")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                return None
-        
+            return await self.api_get(resource)
+       
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
     
@@ -122,14 +115,8 @@ class alphaess:
                 resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
                 logger.debug(f"Trying to call {resource} with adjusted date")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                logger.warning(f"Unexpected None: returned when calling {resource}")
-                return None
-            
+            return await self.api_get(resource)
+           
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
@@ -140,13 +127,8 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource}")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                return None
-            
+            return await self.api_get(resource)
+           
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
@@ -157,13 +139,8 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource}")
 
-            data = await self.__get_data(resource)
-
-            if data is not None:
-                return data
-            else:
-                return None
-        
+            return await self.api_get(resource)
+       
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
@@ -184,12 +161,7 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource} with settings {settings}")
 
-            data = await self.__post_data(resource,settings)
-
-            if data is not None:
-                return data
-            else:
-                return None
+            return await self.api_post(resource,settings)
             
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
@@ -211,75 +183,73 @@ class alphaess:
 
             logger.debug(f"Trying to call {resource} with settings {settings}")
 
-            data = await self.__post_data(resource,settings)
-
-            if data is not None:
-                return data
-            else:
-                return None
+            return await self.api_post(resource,settings)
             
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
  
 
-    async def __get_data(self, path, json={}) -> Optional(list):
+    async def api_get(self, path, json={}) -> Optional(list):
         """Retrieve ESS list by serial number from Alpha ESS"""
         try:
             headers = self.__headers()
 
-            async with aiohttp.ClientSession(raise_for_status=True,trust_env=True) as session:              
-                response = await session.get(
+            response = await self.session.get(
                     path,
                     headers=headers,
                     json = json
-                )
+            )
 
-                if response.status != 200:
-                    logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
+            response.raise_for_status()
+
+            if response.status != 200:
+                logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
                     
-                if response.status == 200:
-                    json_response = await response.json()
+            if response.status == 200:
+                json_response = await response.json()
 
-                if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
-                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                    return None
+            if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
+                logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                return None
+            else:
+                if json_response["data"] is not None:
+                    return json_response["data"]
                 else:
-                    if json_response["data"] is not None:
-                        return json_response["data"]
-                    else:
-                        logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                        return None
+                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                return None
                 
                 
         except Exception as e:
             logger.error(e)
             raise
 
-    async def __post_data(self, path, json) -> Optional(dict):
+    async def api_post(self, path, json) -> Optional(dict):
         """Post data to Alpha ESS"""
         try:
 
             headers = self.__headers()
 
-            async with aiohttp.ClientSession(raise_for_status=True,trust_env=True) as session:
-                response = await session.post(
-                    path,
-                    headers=headers,
-                    json = json
-                )
+            
+            response = await self.session.post(
+                path,
+                headers=headers,
+                json = json
+            )
 
-                if response.status != 200:
-                    logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
-                    
-                if response.status == 200:
-                    json_response = await response.json()
+            response.raise_for_status()
+
+            if response.status != 200:
+                logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
+                   
+            if response.status == 200:
+                json_response = await response.json()
               
-                if "msg" in json_response and json_response["msg"] == "Success":
-                    if json_response["data"] is None:
-                        return json_response["data"]
-                    else:
-                        logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                        return json_response["data"]
+            if "msg" in json_response and json_response["msg"] == "Success":
+                if json_response["data"] is None:
+                    return json_response["data"]
+                else:
+                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                    return json_response["data"]
                 
         except Exception as e:
             logger.error(e)
@@ -338,7 +308,7 @@ class alphaess:
             settings["batHighCap"] = int(chargestopsoc)
 
             logger.debug(f"Trying to set charge settings for system {serial}")
-            await self.__post_data(path="updateChargeConfigInfo", json=settings)
+            await self.api_post(path="updateChargeConfigInfo", json=settings)
         
         except Exception as e:
             logger.error(e)
@@ -358,7 +328,7 @@ class alphaess:
             settings["batUseCap"] = int(dischargecutoffsoc)
 
             logger.debug(f"Trying to set discharge settings for system {serial}")
-            await self.__post_data(path="updateDisChargeConfigInfo", json=settings)
+            await self.api_post(path="updateDisChargeConfigInfo", json=settings)
 
         except Exception as e:
             logger.error(e)
