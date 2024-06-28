@@ -1,3 +1,5 @@
+
+import asyncio
 import time
 import aiohttp
 import logging
@@ -194,24 +196,23 @@ class alphaess:
         try:
             headers = self.__headers()
 
-            response = await self.session.get(
+            async with self.session.get(
                     path,
                     headers=headers,
-                    json = json
-            )
+                    json=json,
+                    raise_for_status=True
+            ) as response:
 
-            response.raise_for_status()
-
-            if response.status != 200:
+              if response.status != 200:
                 logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
                     
-            if response.status == 200:
+              if response.status == 200:
                 json_response = await response.json()
 
-            if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
+              if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
                 logger.error(f"Unexpected json_response : {json_response} when calling {path}")
                 return None
-            else:
+              else:
                 if json_response["data"] is not None:
                     return json_response["data"]
                 else:
