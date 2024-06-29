@@ -206,7 +206,7 @@ class alphaess:
               if response.status == 200:
                 json_response = await response.json()
               else:
-                logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
+                logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
               if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
                 logger.error(f"Unexpected json_response : {json_response} when calling {path}")
@@ -241,7 +241,7 @@ class alphaess:
             if response.status == 200:
                 json_response = await response.json()
             else:
-                logger.error(f"Unexpected response recevied: {response.status} when calling {path}")
+                logger.error(f"Unexpected response received: {response.status} when calling {path}")
               
             if "msg" in json_response and json_response["msg"] == "Success":
                 if json_response["data"] is None:
