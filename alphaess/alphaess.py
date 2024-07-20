@@ -254,21 +254,22 @@ class alphaess:
             logger.error(e)
             raise
 
-
-    async def getdata(self) -> Optional(list):
+    async def getdata(self, self_delay=0) -> Optional(list):
         """Get All Data For All serial numbers from Alpha ESS"""
-
         try:
             alldata = []
             units = await self.getESSList()
-
             for unit in units:
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
-                    unit ['SumData'] = await self.getSumDataForCustomer(serial)
+                    unit['SumData'] = await self.getSumDataForCustomer(serial)
+                    await asyncio.sleep(self_delay)
                     unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial, time.strftime("%Y-%m-%d"))
+                    await asyncio.sleep(self_delay)
                     unit['LastPower'] = await self.getLastPowerData(serial)
+                    await asyncio.sleep(self_delay)
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
+                    await asyncio.sleep(self_delay)
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
                     alldata.append(unit)
                     logger.debug(alldata)
