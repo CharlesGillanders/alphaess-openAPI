@@ -1,4 +1,3 @@
-
 import asyncio
 import time
 import aiohttp
@@ -11,6 +10,7 @@ from voluptuous import Optional
 
 BASEURL = "https://openapi.alphaess.com/api"
 
+
 class alphaess:
     """Class for Alpha ESS."""
 
@@ -20,7 +20,7 @@ class alphaess:
             appSecret,
             session: aiohttp.ClientSession | None = None,
             timeout: int = 30
-        ) -> None:
+    ) -> None:
         """Initialize."""
         self.appID = appID
         self.appSecret = appSecret
@@ -59,11 +59,11 @@ class alphaess:
             logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
-            
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def getLastPowerData(self,sysSn) -> Optional(list):
+    async def getLastPowerData(self, sysSn) -> Optional(list):
         """According SN to get real-time power data"""
         try:
             resource = f"{BASEURL}/getLastPowerData?sysSn={sysSn}"
@@ -71,12 +71,11 @@ class alphaess:
             logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
-        
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-
-    async def getOneDayPowerBySn(self,sysSn,queryDate) -> Optional(list):
+    async def getOneDayPowerBySn(self, sysSn, queryDate) -> Optional(list):
         """According SN to get system power data"""
         try:
             localdateencapsulated = time.strftime("%Y-%m-%d")
@@ -87,13 +86,13 @@ class alphaess:
             else:
                 resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
                 logger.debug(f"Trying to call {resource} with adjusted date")
-            
+
             return await self.api_get(resource)
-            
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
-        
-    async def getSumDataForCustomer(self,sysSn) -> Optional(list):
+
+    async def getSumDataForCustomer(self, sysSn) -> Optional(list):
         """"According SN to get System Summary data"""
         try:
             resource = f"{BASEURL}/getSumDataForCustomer?sysSn={sysSn}"
@@ -101,11 +100,11 @@ class alphaess:
             logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
-       
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
-    
-    async def getOneDateEnergyBySn(self,sysSn,queryDate) -> Optional(list):
+
+    async def getOneDateEnergyBySn(self, sysSn, queryDate) -> Optional(list):
         """According SN to get System Energy Data"""
         try:
             localdateencapsulated = time.strftime("%Y-%m-%d")
@@ -118,11 +117,11 @@ class alphaess:
                 logger.debug(f"Trying to call {resource} with adjusted date")
 
             return await self.api_get(resource)
-           
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def getChargeConfigInfo(self,sysSn) -> Optional(list):
+    async def getChargeConfigInfo(self, sysSn) -> Optional(list):
         """According SN to get charging setting information"""
         try:
             resource = f"{BASEURL}/getChargeConfigInfo?sysSn={sysSn}"
@@ -130,11 +129,11 @@ class alphaess:
             logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
-           
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def getDisChargeConfigInfo(self,sysSn) -> Optional(list):
+    async def getDisChargeConfigInfo(self, sysSn) -> Optional(list):
         """According to SN discharge setting information"""
         try:
             resource = f"{BASEURL}/getDisChargeConfigInfo?sysSn={sysSn}"
@@ -142,15 +141,16 @@ class alphaess:
             logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
-       
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def updateChargeConfigInfo(self,sysSn,batHighCap,gridCharge,timeChae1,timeChae2,timeChaf1,timeChaf2) -> Optional(dict):
+    async def updateChargeConfigInfo(self, sysSn, batHighCap, gridCharge, timeChae1, timeChae2, timeChaf1,
+                                     timeChaf2) -> Optional(dict):
         """According SN to Set charging information"""
         try:
-            resource = f"{BASEURL}/updateChargeConfigInfo" 
-        
+            resource = f"{BASEURL}/updateChargeConfigInfo"
+
             settings = {
                 "sysSn": sysSn,
                 "batHighCap": batHighCap,
@@ -158,20 +158,21 @@ class alphaess:
                 "timeChae1": timeChae1,
                 "timeChae2": timeChae2,
                 "timeChaf1": timeChaf1,
-                "timeChaf2": timeChaf2       
-                }
+                "timeChaf2": timeChaf2
+            }
 
             logger.debug(f"Trying to call {resource} with settings {settings}")
 
-            return await self.api_post(resource,settings)
-            
+            return await self.api_post(resource, settings)
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def updateDisChargeConfigInfo(self,sysSn,batUseCap,ctrDis,timeDise1,timeDise2,timeDisf1,timeDisf2) -> Optional(dict):
+    async def updateDisChargeConfigInfo(self, sysSn, batUseCap, ctrDis, timeDise1, timeDise2, timeDisf1,
+                                        timeDisf2) -> Optional(dict):
         """According SN to Set discharge information"""
         try:
-            resource = f"{BASEURL}/updateDisChargeConfigInfo" 
+            resource = f"{BASEURL}/updateDisChargeConfigInfo"
 
             settings = {
                 "sysSn": sysSn,
@@ -180,16 +181,15 @@ class alphaess:
                 "timeDise1": timeDise1,
                 "timeDise2": timeDise2,
                 "timeDisf1": timeDisf1,
-                "timeDisf2": timeDisf2       
-                }
+                "timeDisf2": timeDisf2
+            }
 
             logger.debug(f"Trying to call {resource} with settings {settings}")
 
-            return await self.api_post(resource,settings)
-            
+            return await self.api_post(resource, settings)
+
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
- 
 
     async def api_get(self, path, json={}) -> Optional(list):
         """Retrieve ESS list by serial number from Alpha ESS"""
@@ -202,23 +202,23 @@ class alphaess:
                     json=json,
                     raise_for_status=True
             ) as response:
-                    
-              if response.status == 200:
-                json_response = await response.json()
-              else:
-                logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
-              if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
-                logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                return None
-              else:
-                if json_response["data"] is not None:
-                    return json_response["data"]
+                if response.status == 200:
+                    json_response = await response.json()
                 else:
+                    logger.error(f"Unexpected response received: {response.status} when calling {path}")
+
+                if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
                     logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                return None
-                
-                
+                    return None
+                else:
+                    if json_response["data"] is not None:
+                        return json_response["data"]
+                    else:
+                        logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                    return None
+
+
         except Exception as e:
             logger.error(e)
             raise
@@ -229,32 +229,31 @@ class alphaess:
 
             headers = self.__headers()
 
-            
             response = await self.session.post(
                 path,
                 headers=headers,
-                json = json
+                json=json
             )
 
             response.raise_for_status()
-                   
+
             if response.status == 200:
                 json_response = await response.json()
             else:
                 logger.error(f"Unexpected response received: {response.status} when calling {path}")
-              
+
             if "msg" in json_response and json_response["msg"] == "Success":
                 if json_response["data"] is None:
                     return json_response["data"]
                 else:
                     logger.error(f"Unexpected json_response : {json_response} when calling {path}")
                     return json_response["data"]
-                
+
         except Exception as e:
             logger.error(e)
             raise
 
-    async def getdata(self, self_delay=0) -> Optional(list):
+    async def getdata(self, get_power=False, self_delay=0) -> Optional(list):
         """Get All Data For All serial numbers from Alpha ESS"""
         try:
             alldata = []
@@ -271,6 +270,9 @@ class alphaess:
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
                     await asyncio.sleep(self_delay)
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
+                    if get_power:
+                        await asyncio.sleep(self_delay)
+                        unit['OneDayPower'] = await self.getOneDayPowerBySn(serial, time.strftime("%Y-%m-%d"))
                     alldata.append(unit)
                     logger.debug(alldata)
             return alldata
@@ -289,7 +291,7 @@ class alphaess:
                 if "sysSn" in unit:
                     success = True
             return success
-        
+
         except Exception as e:
             logger.error(e)
             raise
@@ -309,7 +311,7 @@ class alphaess:
 
             logger.debug(f"Trying to set charge settings for system {serial}")
             await self.api_post(path="updateChargeConfigInfo", json=settings)
-        
+
         except Exception as e:
             logger.error(e)
             raise
@@ -318,7 +320,7 @@ class alphaess:
         """Set battery discharging"""
         try:
             settings = []
-        
+
             settings["sysSn"] = serial
             settings["ctrDis"] = int(enabled)
             settings["timeDisf1"] = dp1start
