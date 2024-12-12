@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "38cf5b33-efe8-4765-9a4d-247613b2a3a6",
+		"_postman_id": "a1fabb56-83aa-45ea-a562-bd7264ad20cf",
 		"name": "AlphaESS Open API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "11219653"
+		"_exporter_id": "26776245"
 	},
 	"item": [
 		{
@@ -32,6 +32,107 @@
 					],
 					"path": [
 						"getEssList"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getVerificationCode",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"if (jsonData.data){",
+							"  pm.collectionVariables.set(\"VerificationCode\", jsonData.data[0].code);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{BaseUrl}}/getVerificationCode?sysSn={{SysSn}}&checkCode={{CheckCode}}",
+					"host": [
+						"{{BaseUrl}}"
+					],
+					"path": [
+						"getVerificationCode"
+					],
+					"query": [
+						{
+							"key": "sysSn",
+							"value": "{{SysSn}}"
+						},
+						{
+							"key": "checkCode",
+							"value": "{{CheckCode}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "bindSn",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{BaseUrl}}/bindSn?sysSn={{SysSn}}&Code={{VerificationCode}}",
+					"host": [
+						"{{BaseUrl}}"
+					],
+					"path": [
+						"bindSn"
+					],
+					"query": [
+						{
+							"key": "sysSn",
+							"value": "{{SysSn}}"
+						},
+						{
+							"key": "Code",
+							"value": "{{VerificationCode}}"
+						}
 					]
 				}
 			},
@@ -427,6 +528,16 @@
 		{
 			"key": "DischargeData",
 			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "CheckCode",
+			"value": "YOURCHECKCODE",
+			"type": "string"
+		},
+		{
+			"key": "VerificationCode",
+			"value": "YOURVERIFICATIONCODE",
 			"type": "string"
 		}
 	]
