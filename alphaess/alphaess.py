@@ -400,6 +400,14 @@ class alphaess:
                     if get_ev:
                         await asyncio.sleep(self_delay)
                         unit['EVData'] = await self.getEvChargerConfigList(serial)
+                        logger.info(unit['EVData'])
+                        await asyncio.sleep(self_delay)
+                        try:
+                            ev_serial = unit['EVData'][0].get('evchargerSn', None)
+                            unit['EVStatus'] = await self.getEvChargerStatusBySn(serial, ev_serial)
+                            unit['EVCurrent'] = await self.getEvChargerCurrentsBySn(serial)
+                        except Exception:
+                            pass
 
                     alldata.append(unit)
                     logger.debug(alldata)
