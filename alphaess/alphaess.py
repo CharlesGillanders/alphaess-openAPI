@@ -400,7 +400,6 @@ class alphaess:
                     if get_ev:
                         await asyncio.sleep(self_delay)
                         unit['EVData'] = await self.getEvChargerConfigList(serial)
-                        logger.info(unit['EVData'])
                         await asyncio.sleep(self_delay)
                         try:
                             ev_serial = unit['EVData'][0].get('evchargerSn', None)
@@ -471,3 +470,4 @@ class alphaess:
         except Exception as e:
             logger.error(e)
             raise
+        
