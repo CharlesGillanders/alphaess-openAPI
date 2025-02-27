@@ -470,4 +470,3 @@ class alphaess:
         except Exception as e:
             logger.error(e)
             raise
-        
