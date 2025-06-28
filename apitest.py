@@ -7,9 +7,11 @@ from datetime import date, timedelta
 if len(sys.argv) != 3:
     appID = input("AppID: ")
     appSecret = input("AppSecret: ")
+    IPAddress = input("IP Address (blank if not using): ") or None
 else:
     appID = sys.argv[1]
     appSecret = sys.argv[2]
+    IPAddress = sys.argv[3]
 
 logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)
@@ -19,11 +21,14 @@ formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcN
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 async def main():
     logger.debug("instantiating Alpha ESS Client")
     try:
-        client: alphaess = alphaess(appID, appSecret)
+        client: alphaess = alphaess(appID, appSecret, ipaddress=IPAddress)
         ESSList = await client.getESSList()
         for unit in ESSList:
             if "sysSn" in unit:
