@@ -19,7 +19,8 @@ class alphaess:
             appID,
             appSecret,
             session: aiohttp.ClientSession | None = None,
-            timeout: int = 30
+            timeout: int = 30,
+            ipaddress=None
     ) -> None:
         """Initialize."""
         self.appID = appID
@@ -31,6 +32,7 @@ class alphaess:
         self.session = session or aiohttp.ClientSession()
         self._created_session = not session
         self.timeout = timeout
+        self.ipaddress = ipaddress
 
     async def close(self) -> None:
         """Close the AlphaESS API client."""
@@ -312,6 +314,31 @@ class alphaess:
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
+    async def getIPData(self) -> Optional(dict):
+        ENDPOINTS = {
+            "status": "/config?command=status",
+            "device_info": "/config?command=devinfo"
+        }
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for name, path in ENDPOINTS.items():
+                url = f"http://{self.ipaddress}{path}"
+                tasks.append(self._fetch(session, name, url))
+            results = await asyncio.gather(*tasks)
+            return dict(results)
+
+    @staticmethod
+    async def _fetch(session, name, url):
+        try:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                data = await response.json(content_type=None)
+                return name, data
+        except Exception as e:
+            print(f"Failed to fetch {name} from {url}: {e}")
+            return name, None
+
     async def api_get(self, path, json=None) -> Optional(list):
         """Retrieve ESS list by serial number from Alpha ESS"""
         if json is None:
@@ -379,6 +406,15 @@ class alphaess:
         """Get All Data For All serial numbers from Alpha ESS"""
         try:
             alldata = []
+            if self.ipaddress:
+                ip_data = await self.getIPData()
+                if ip_data:
+                    # Wrap it like a unit and add to alldata
+                    alldata.append({
+                        "type": "local_ip_data",
+                        "ip": self.ipaddress,
+                        **ip_data  # merge status and device_info keys
+                    })
             units = await self.getESSList()
             for unit in units:
                 if "sysSn" in unit:
@@ -407,7 +443,6 @@ class alphaess:
                             unit['EVCurrent'] = await self.getEvChargerCurrentsBySn(serial)
                         except Exception:
                             pass
-
                     alldata.append(unit)
                     logger.debug(alldata)
             return alldata
