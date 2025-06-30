@@ -406,29 +406,39 @@ class alphaess:
         """Get All Data For All serial numbers from Alpha ESS"""
         try:
             alldata = []
+
+            # Prepare local IP data if available
+            local_ip_data = {}
             if self.ipaddress:
                 ip_data = await self.getIPData()
                 if ip_data:
-                    # Wrap it like a unit and add to alldata
-                    alldata.append({
-                        "type": "local_ip_data",
-                        "ip": self.ipaddress,
-                        **ip_data  # merge status and device_info keys
-                    })
+                    local_ip_data = {
+                        "LocalIPData": {
+                            "type": "local_ip_data",
+                            "ip": self.ipaddress,
+                            **ip_data  # merges 'status' and 'device_info' keys
+                        }
+                    }
+
             units = await self.getESSList()
-            for unit in units:
+            for idx, unit in enumerate(units):
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
                     unit['SumData'] = await self.getSumDataForCustomer(serial)
                     await asyncio.sleep(self_delay)
+
                     unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial, time.strftime("%Y-%m-%d"))
                     await asyncio.sleep(self_delay)
+
                     unit['LastPower'] = await self.getLastPowerData(serial)
                     await asyncio.sleep(self_delay)
+
                     unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
                     await asyncio.sleep(self_delay)
+
                     unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
                     await asyncio.sleep(self_delay)
+
                     if get_power:
                         await asyncio.sleep(self_delay)
                         unit['OneDayPower'] = await self.getOneDayPowerBySn(serial, time.strftime("%Y-%m-%d"))
@@ -443,8 +453,14 @@ class alphaess:
                             unit['EVCurrent'] = await self.getEvChargerCurrentsBySn(serial)
                         except Exception:
                             pass
+
+                    # Only add the local IP data to the first inverter unit
+                    if idx == 0 and local_ip_data:
+                        unit.update(local_ip_data)
+
                     alldata.append(unit)
                     logger.debug(alldata)
+
             return alldata
 
         except Exception as e:
