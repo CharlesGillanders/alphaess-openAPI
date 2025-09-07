@@ -77,17 +77,14 @@ class alphaess:
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def getOneDayPowerBySn(self, sysSn, queryDate) -> Optional(list):
+    async def getOneDayPowerBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get system power data"""
         try:
-            localdateencapsulated = time.strftime("%Y-%m-%d")
+            if queryDate is None:
+                queryDate = time.strftime("%Y-%m-%d")
 
-            if queryDate == localdateencapsulated:
-                resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={queryDate}"
-                logger.debug(f"Trying to call {resource}")
-            else:
-                resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
-                logger.debug(f"Trying to call {resource} with adjusted date")
+            resource = f"{BASEURL}/getOneDayPowerBySn?sysSn={sysSn}&queryDate={queryDate}"
+            logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
 
@@ -106,17 +103,14 @@ class alphaess:
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
 
-    async def getOneDateEnergyBySn(self, sysSn, queryDate) -> Optional(list):
+    async def getOneDateEnergyBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get System Energy Data"""
         try:
-            localdateencapsulated = time.strftime("%Y-%m-%d")
+            if queryDate is None:
+                queryDate = time.strftime("%Y-%m-%d")
 
-            if queryDate == localdateencapsulated:
-                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
-                logger.debug(f"Trying to call {resource}")
-            else:
-                resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={localdateencapsulated}"
-                logger.debug(f"Trying to call {resource} with adjusted date")
+            resource = f"{BASEURL}/getOneDateEnergyBySn?sysSn={sysSn}&queryDate={queryDate}"
+            logger.debug(f"Trying to call {resource}")
 
             return await self.api_get(resource)
 
