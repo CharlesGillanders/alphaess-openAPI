@@ -20,7 +20,8 @@ class alphaess:
             appSecret,
             session: aiohttp.ClientSession | None = None,
             timeout: int = 30,
-            ipaddress=None
+            ipaddress=None,
+            verify_ssl=True
     ) -> None:
         """Initialize."""
         self.appID = appID
@@ -33,6 +34,7 @@ class alphaess:
         self._created_session = not session
         self.timeout = timeout
         self.ipaddress = ipaddress
+        self.verify_ssl = verify_ssl
 
     async def close(self) -> None:
         """Close the AlphaESS API client."""
@@ -344,7 +346,8 @@ class alphaess:
                     path,
                     headers=headers,
                     json=json,
-                    raise_for_status=True
+                    raise_for_status=True,
+                    ssl=self.verify_ssl
             ) as response:
 
                 if response.status == 200:
@@ -375,7 +378,8 @@ class alphaess:
             response = await self.session.post(
                 path,
                 headers=headers,
-                json=json
+                json=json,
+                ssl=self.verify_ssl
             )
 
             response.raise_for_status()
