@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import sys
+from enum import verify
+
 from alphaess.alphaess import alphaess
 from datetime import date, timedelta
 
@@ -8,10 +10,12 @@ if len(sys.argv) != 3:
     appID = input("AppID: ")
     appSecret = input("AppSecret: ")
     IPAddress = input("IP Address (blank if not using): ") or None
+    verify_ssl = input("Verify SSL? (Y/N, default Y): ").strip().upper() != "N"
 else:
     appID = sys.argv[1]
     appSecret = sys.argv[2]
     IPAddress = sys.argv[3]
+    verify_ssl = True
 
 logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)
@@ -28,7 +32,7 @@ if sys.platform.startswith("win"):
 async def main():
     logger.debug("instantiating Alpha ESS Client")
     try:
-        client: alphaess = alphaess(appID, appSecret, ipaddress=IPAddress)
+        client: alphaess = alphaess(appID, appSecret, ipaddress=IPAddress, verify_ssl=verify_ssl)
         ESSList = await client.getESSList()
         for unit in ESSList:
             if "sysSn" in unit:
