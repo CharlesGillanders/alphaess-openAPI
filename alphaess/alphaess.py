@@ -483,18 +483,20 @@ class alphaess:
     async def setbatterycharge(self, serial, enabled, cp1start, cp1end, cp2start, cp2end, chargestopsoc):
         """Set battery grid charging"""
         try:
-            settings = []
+            resource = f"{BASEURL}/updateChargeConfigInfo"
 
-            settings["sysSn"] = serial
-            settings["gridCharge"] = int(enabled)
-            settings["timeChaf1"] = cp1start
-            settings["timeChae1"] = cp1end
-            settings["timeChaf2"] = cp2start
-            settings["timeChae2"] = cp2end
-            settings["batHighCap"] = int(chargestopsoc)
+            settings = {
+                "sysSn": serial,
+                "gridCharge": int(enabled),
+                "timeChaf1": cp1start,
+                "timeChae1": cp1end,
+                "timeChaf2": cp2start,
+                "timeChae2": cp2end,
+                "batHighCap": int(chargestopsoc),
+            }
 
-            logger.debug(f"Trying to set charge settings for system {serial}")
-            await self.api_post(path="updateChargeConfigInfo", json=settings)
+            logger.debug(f"Trying to call {resource} with settings {settings}")
+            return await self.api_post(resource, settings)
 
         except Exception as e:
             logger.error(e)
@@ -503,18 +505,20 @@ class alphaess:
     async def setbatterydischarge(self, serial, enabled, dp1start, dp1end, dp2start, dp2end, dischargecutoffsoc):
         """Set battery discharging"""
         try:
-            settings = []
+            resource = f"{BASEURL}/updateDisChargeConfigInfo"
 
-            settings["sysSn"] = serial
-            settings["ctrDis"] = int(enabled)
-            settings["timeDisf1"] = dp1start
-            settings["timeDise1"] = dp1end
-            settings["timeDisf2"] = dp2start
-            settings["timeDise2"] = dp2end
-            settings["batUseCap"] = int(dischargecutoffsoc)
+            settings = {
+                "sysSn": serial,
+                "ctrDis": int(enabled),
+                "timeDisf1": dp1start,
+                "timeDise1": dp1end,
+                "timeDisf2": dp2start,
+                "timeDise2": dp2end,
+                "batUseCap": int(dischargecutoffsoc),
+            }
 
-            logger.debug(f"Trying to set discharge settings for system {serial}")
-            await self.api_post(path="updateDisChargeConfigInfo", json=settings)
+            logger.debug(f"Trying to call {resource} with settings {settings}")
+            return await self.api_post(resource, settings)
 
         except Exception as e:
             logger.error(e)
