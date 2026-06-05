@@ -419,6 +419,12 @@ class alphaess:
                     }
 
             units = await self.getESSList()
+            if units is None:
+                logger.warning(
+                    "getESSList returned no data (Alpha ESS API busy or unavailable); "
+                    "skipping this update cycle"
+                )
+                return alldata
             for idx, unit in enumerate(units):
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
@@ -471,6 +477,12 @@ class alphaess:
         try:
             success = False
             units = await self.getESSList()
+            if units is None:
+                logger.error(
+                    "Authentication check failed: getESSList returned no data "
+                    "(Alpha ESS API busy or unavailable)"
+                )
+                return False
             for unit in units:
                 if "sysSn" in unit:
                     success = True
