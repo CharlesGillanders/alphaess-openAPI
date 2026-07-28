@@ -66,6 +66,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getLastPowerData(self, sysSn) -> Optional(list):
         """According SN to get real-time power data"""
@@ -78,6 +79,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getOneDayPowerBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get system power data"""
@@ -92,6 +94,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getSumDataForCustomer(self, sysSn) -> Optional(list):
         """According SN to get System Summary data"""
@@ -104,6 +107,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getOneDateEnergyBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get System Energy Data"""
@@ -118,6 +122,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getChargeConfigInfo(self, sysSn) -> Optional(list):
         """According SN to get charging setting information"""
@@ -130,6 +135,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getDisChargeConfigInfo(self, sysSn) -> Optional(list):
         """According to SN discharge setting information"""
@@ -142,6 +148,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerConfigList(self, sysSn) -> Optional(list):
         """According to SN get Ev Charger Config List"""
@@ -154,6 +161,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def setEvChargerCurrentsBySn(self, sysSn, currentsetting) -> Optional(list):
         """According to SN set Ev Charger Currents"""
@@ -171,6 +179,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerCurrentsBySn(self, sysSn) -> Optional(list):
         """According to SN get Ev Charger Currents"""
@@ -183,6 +192,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerStatusBySn(self, sysSn, evchargerSn) -> Optional(list):
         """According to SN get Ev Charger Status"""
@@ -195,6 +205,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def remoteControlEvCharger(self, sysSn, evchargerSn, controlMode) -> Optional(dict):
         """According SN to Remote Control Ev Charger"""
@@ -213,6 +224,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def bindSn(self, sysSn, code) -> Optional(dict):
         """According to SN to Bind SN"""
@@ -230,6 +242,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getVerificationCode(self, sysSn, checkCode) -> Optional(dict):
         """According SN to Get Verification Code"""
@@ -247,6 +260,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def unBindSn(self, sysSn) -> Optional(dict):
         """According SN to UnBind SN"""
@@ -263,6 +277,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def updateChargeConfigInfo(self, sysSn, batHighCap, gridCharge, timeChae1, timeChae2, timeChaf1,
                                      timeChaf2) -> Optional(dict):
@@ -286,6 +301,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def updateDisChargeConfigInfo(self, sysSn, batUseCap, ctrDis, timeDise1, timeDise2, timeDisf1,
                                         timeDisf2) -> Optional(dict):
@@ -309,6 +325,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getIPData(self) -> Optional(dict):
         ENDPOINTS = {
