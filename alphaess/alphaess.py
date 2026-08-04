@@ -10,6 +10,35 @@ logger = logging.getLogger(__name__)
 
 BASEURL = "https://openapi.alphaess.com/api"
 
+# Return codes as published on the developer portal, see docs/RETURN_CODES.md
+RETURN_CODES = {
+    6001: "Parameter error",
+    6002: "The SN is not bound to the user",
+    6003: "You have bound this SN",
+    6004: "CheckCode error",
+    6005: "This appId is not bound to the SN",
+    6006: "Timestamp error",
+    6007: "Sign verification error",
+    6008: "Set failed",
+    6009: "Whitelist verification failed",
+    6010: "Sign is empty",
+    6011: "timestamp is empty",
+    6012: "AppId is empty",
+    6016: "Data does not exist or has been deleted",
+    6026: "internal error",
+    6029: "operation failed",
+    6038: "system sn does not exist",
+    6042: "system offline",
+    6046: "Verification code error",
+    6053: "The request was too fast, please try again later",
+}
+
+# Codes the API returns but the portal does not publish. Kept separate so
+# RETURN_CODES stays a faithful copy of the documented table.
+UNDOCUMENTED_RETURN_CODES = {
+    6017: "No operation permissions",
+}
+
 
 class alphaess:
     """Class for Alpha ESS."""
@@ -55,6 +84,26 @@ class alphaess:
             "timeStamp": timestamp
         }
 
+    @staticmethod
+    def __is_success(json_response) -> bool:
+        """Check whether a json response indicates success.
+
+        Most endpoints report the status as "msg", the periodic charge/discharge
+        endpoints are documented as reporting it as "info".
+        """
+        return (
+            json_response.get("code") == 200
+            or json_response.get("msg") == "Success"
+            or json_response.get("info") == "Success"
+        )
+
+    @staticmethod
+    def __return_code_description(json_response) -> str:
+        """Return a formatted description for the response code, if known"""
+        code = json_response.get("code")
+        description = RETURN_CODES.get(code) or UNDOCUMENTED_RETURN_CODES.get(code)
+        return f" ({description})" if description else ""
+
     async def getESSList(self) -> Optional(list):
         """According to SN to get system list data"""
         try:
@@ -66,6 +115,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getLastPowerData(self, sysSn) -> Optional(list):
         """According SN to get real-time power data"""
@@ -78,6 +128,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getOneDayPowerBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get system power data"""
@@ -92,6 +143,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getSumDataForCustomer(self, sysSn) -> Optional(list):
         """According SN to get System Summary data"""
@@ -104,6 +156,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getOneDateEnergyBySn(self, sysSn, queryDate=None) -> Optional(list):
         """According SN to get System Energy Data"""
@@ -118,6 +171,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getChargeConfigInfo(self, sysSn) -> Optional(list):
         """According SN to get charging setting information"""
@@ -130,6 +184,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getDisChargeConfigInfo(self, sysSn) -> Optional(list):
         """According to SN discharge setting information"""
@@ -142,6 +197,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerConfigList(self, sysSn) -> Optional(list):
         """According to SN get Ev Charger Config List"""
@@ -154,6 +210,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def setEvChargerCurrentsBySn(self, sysSn, currentsetting) -> Optional(list):
         """According to SN set Ev Charger Currents"""
@@ -171,6 +228,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerCurrentsBySn(self, sysSn) -> Optional(list):
         """According to SN get Ev Charger Currents"""
@@ -183,6 +241,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getEvChargerStatusBySn(self, sysSn, evchargerSn) -> Optional(list):
         """According to SN get Ev Charger Status"""
@@ -195,6 +254,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def remoteControlEvCharger(self, sysSn, evchargerSn, controlMode) -> Optional(dict):
         """According SN to Remote Control Ev Charger"""
@@ -213,6 +273,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def bindSn(self, sysSn, code) -> Optional(dict):
         """According to SN to Bind SN"""
@@ -230,23 +291,20 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getVerificationCode(self, sysSn, checkCode) -> Optional(dict):
         """According SN to Get Verification Code"""
         try:
-            resource = f"{BASEURL}/getVerificationCode"
+            resource = f"{BASEURL}/getVerificationCode?sysSn={sysSn}&checkCode={checkCode}"
 
-            settings = {
-                "sysSn": sysSn,
-                "checkCode": checkCode
-            }
+            logger.debug(f"Trying to call {resource}")
 
-            logger.debug(f"Trying to call {resource} with settings {settings}")
-
-            return await self.api_post(resource, settings)
+            return await self.api_get(resource)
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def unBindSn(self, sysSn) -> Optional(dict):
         """According SN to UnBind SN"""
@@ -263,6 +321,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def updateChargeConfigInfo(self, sysSn, batHighCap, gridCharge, timeChae1, timeChae2, timeChaf1,
                                      timeChaf2) -> Optional(dict):
@@ -286,6 +345,7 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def updateDisChargeConfigInfo(self, sysSn, batUseCap, ctrDis, timeDise1, timeDise2, timeDisf1,
                                         timeDisf2) -> Optional(dict):
@@ -309,6 +369,55 @@ class alphaess:
 
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
+            raise
+
+    async def getTimeChargeBySn(self, sysSn) -> Optional(dict):
+        """According SN to get periodic charge/discharge settings"""
+        try:
+            resource = f"{BASEURL}/getTimeChargeBySn?sysSn={sysSn}"
+
+            logger.debug(f"Trying to call {resource}")
+
+            return await self.api_get(resource)
+
+        except Exception as e:
+            logger.error(f"Error: {e} when calling {resource}")
+            raise
+
+    async def setTimeChargeBySn(self, sysSn, executeCycleType, chargeTimeList, dischargeTimeList,
+                                gridChargeCycle=None, ctrDisCycle=None) -> Optional(dict):
+        """According SN to set periodic charge/discharge settings
+
+        executeCycleType: 0 - daily, 1 - weekly
+        chargeTimeList / dischargeTimeList: lists of periods, each a dict of
+            beginTime (HH:mm), endTime (HH:mm), chargeLimit (cutoff SOC, 10-100) and
+            optionally weeks ([1..7], Monday to Sunday, required when weekly) and chargePower.
+            Maximum 6 periods per day / 28 per week, charge and discharge must not overlap.
+        gridChargeCycle / ctrDisCycle: 0 - disabled, 1 - enabled
+        """
+        try:
+            resource = f"{BASEURL}/setTimeChargeBySn"
+
+            settings = {
+                "sysSn": sysSn,
+                "executeCycleType": executeCycleType,
+                "chargeTimeList": chargeTimeList,
+                "dischargeTimeList": dischargeTimeList
+            }
+
+            if gridChargeCycle is not None:
+                settings["gridChargeCycle"] = int(gridChargeCycle)
+
+            if ctrDisCycle is not None:
+                settings["ctrDisCycle"] = int(ctrDisCycle)
+
+            logger.debug(f"Trying to call {resource} with settings {settings}")
+
+            return await self.api_post(resource, settings)
+
+        except Exception as e:
+            logger.error(f"Error: {e} when calling {resource}")
+            raise
 
     async def getIPData(self) -> Optional(dict):
         ENDPOINTS = {
@@ -355,8 +464,10 @@ class alphaess:
                 else:
                     logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
-                if ("msg" in json_response and json_response["msg"] != "Success") or ("msg" not in json_response):
-                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                if not self.__is_success(json_response):
+                    logger.error(
+                        f"Unexpected json_response : {json_response}"
+                        f"{self.__return_code_description(json_response)} when calling {path}")
                     return None
                 else:
                     if json_response["data"] is not None:
@@ -389,18 +500,19 @@ class alphaess:
             else:
                 logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
-            if "msg" in json_response and json_response["msg"] == "Success":
-                if json_response["data"] is None:
-                    return json_response["data"]
-                else:
-                    logger.error(f"Unexpected json_response : {json_response} when calling {path}")
-                    return json_response["data"]
+            if self.__is_success(json_response):
+                return json_response["data"]
+
+            logger.error(
+                f"Unexpected json_response : {json_response}"
+                f"{self.__return_code_description(json_response)} when calling {path}")
+            return None
 
         except Exception as e:
             logger.error(e)
             raise
 
-    async def getdata(self, get_power=False, get_ev=False, self_delay=0) -> Optional(list):
+    async def getdata(self, get_power=False, get_ev=False, self_delay=0, get_timecharge=False) -> Optional(list):
         """Get All Data For All serial numbers from Alpha ESS"""
         try:
             alldata = []
@@ -446,6 +558,10 @@ class alphaess:
                     if get_power:
                         await asyncio.sleep(self_delay)
                         unit['OneDayPower'] = await self.getOneDayPowerBySn(serial, time.strftime("%Y-%m-%d"))
+
+                    if get_timecharge:
+                        await asyncio.sleep(self_delay)
+                        unit['TimeCharge'] = await self.getTimeChargeBySn(serial)
 
                     if get_ev:
                         await asyncio.sleep(self_delay)
