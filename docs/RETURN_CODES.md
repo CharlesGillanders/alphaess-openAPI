@@ -144,14 +144,13 @@ Observed in production but absent from the portal's Return Code Description page
 | Code | Message | Cause |
 |:--|:--|:--|
 | `6017` | `No operation permissions` | Your AppID is bound to the SN, but the account tier or the hardware is not entitled to this endpoint. Confirmed on `getTimeChargeBySn` against two bound SMILE5 systems; the same call with an unbound SN returned `6005` instead, proving the binding check passes first and the entitlement check fails second. Handle it as "feature unavailable for this system", not as an error to retry. |
-| `10001` | `Parameter Error` | Structurally malformed request body — distinct from `6001`, which is a *valid* body with a bad value. Observed on `setTimeChargeBySn` when `dischargeTimeList` was omitted entirely. Note the capitalisation differs from `6001`'s `Parameter error`, and it sits outside the `6xxx` range, so a parser that assumes `6000 <= code <= 6099` will miss it. |
+| `10001` | `Parameter Error` | The request body was malformed, as opposed to `6001` which is a valid body with a bad value in it. Seen on `setTimeChargeBySn` when `dischargeTimeList` was left out entirely. Two things to watch: the capitalisation differs from `6001`'s `Parameter error`, and it's outside the `6xxx` range, so anything assuming `6000 <= code <= 6099` will miss it. |
 
-### Validation order
+### Errors come back in a particular order
 
-Parameter validation runs **before** the entitlement check. On a system that is not entitled to
-an endpoint at all, a malformed request still returns `6001`/`10001` rather than `6017`; only
-once the payload is structurally valid does `6017` surface. Captured on `setTimeChargeBySn`
-against a SMILE5-INV:
+Parameters get validated before permissions. If your payload is malformed you'll get `6001` or
+`10001` even on a system that has no access to the endpoint at all — `6017` only shows up once
+the payload is valid. Here's the same endpoint on the same SMILE5-INV, three times:
 
 | Request | Response |
 |:--|:--|
@@ -159,7 +158,8 @@ against a SMILE5-INV:
 | `dischargeTimeList` omitted | `10001` |
 | both lists valid | `6017` |
 
-Do not read an early `6001` as evidence that the account has permission.
+So getting a `6001` back doesn't mean your account has permission — it just means you never got
+far enough to find out.
 
 ---
 
@@ -218,10 +218,9 @@ Two consequences worth knowing:
 
 ### Opting in to exceptions — `raise_on_error` (0.0.21+)
 
-Both consequences above go away if you construct the client with `raise_on_error=True`. API-level
-failures then raise `AlphaESSApiError` carrying the code, and **success is signalled by the
-absence of an exception** — which is the only way to confirm a write on endpoints that answer
-`data: null` either way.
+Both of those go away if you build the client with `raise_on_error=True`. API-level failures then
+raise `AlphaESSApiError` with the code attached, and success just means nothing was raised —
+which is the only way to confirm a write on the endpoints that return `data: null` either way.
 
 ```python
 from alphaess.alphaess import alphaess, AlphaESSApiError
@@ -242,13 +241,13 @@ except aiohttp.ClientError:
 | Attribute | Description |
 |:--|:--|
 | `code` | The `code` field, e.g. `6001` |
-| `msg` | The `msg` (or `info`) field — **localised**, do not branch on it |
-| `expMsg` | Exception detail, e.g. `"time list is null"`. Often the only field naming the bad parameter. |
-| `description` | The English description from `RETURN_CODES` / `UNDOCUMENTED_RETURN_CODES`, if known |
+| `msg` | The `msg` (or `info`) field. Localised, so don't branch on it |
+| `expMsg` | Exception detail, e.g. `"time list is null"` — often the only thing naming the bad parameter |
+| `description` | The English description from `RETURN_CODES` / `UNDOCUMENTED_RETURN_CODES`, if we know the code |
 | `path` | The URL that was called |
 
-The flag defaults to `False`, so upgrading changes nothing unless you ask for it. Transport
-errors are unaffected either way — they always propagate.
+The flag is off by default, so upgrading won't change anything unless you ask it to. Transport
+errors behave the same either way — they always propagate.
 
 ### Transport-level errors → the exception propagates
 

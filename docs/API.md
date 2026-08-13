@@ -149,22 +149,20 @@ charge/discharge pair carries portal ids `110000000000000` and `110000000000001`
 with no `code` field. This is also a reliable way to tell an endpoint that exists from one that
 does not: an unknown path returns `404`, a real path called with the wrong verb returns `405`.
 
-### Endpoints that exist but are not in this list
+### Two endpoints you can't reach
 
-The portal's interface registry holds **21** interfaces, but a standard developer account is
-scoped to the 19 above. The registry groups interfaces into three documents — 标准文档 (standard,
-"for ordinary end users"), 第三方机构专用文档 (third-party institutions), and 工商业定制文档
-(commercial & industrial, added 2024-10-29) — and two meter-offset endpoints appear **only** in
-the commercial & industrial document:
+There are 21 endpoints in the portal, not 19. The other two are for meter offset, and they only
+show up in the commercial & industrial document — the portal splits its endpoints across three
+documents (standard, third-party institutions, and C&I) and a normal developer account only gets
+the standard one.
 
-| Portal id | Endpoint | Method | Notes |
+| Portal id | Endpoint | Method | Parameters |
 |:--|:--|:--|:--|
-| 20 | `getMeterOffsetConfigInfo` | **GET** | Portal documents it as POST, which returns `405`. Its parameter table is copy-pasted from the setter and lists write fields on a read. |
+| 20 | `getMeterOffsetConfigInfo` | **GET** — the portal says POST, which just `405`s | `sysSn` |
 | 21 | `updateMeterOffsetConfigInfo` | POST | `sysSn`, `pmOffset` (0.1 kW units, −500…500 kW, default 0), `pmOffsetEn` (1/0), `pmOffsetS1`/`E1`, `pmOffsetS2`/`E2` |
 
-Both are unusable from a standard account: every parameter combination tried against
-`getMeterOffsetConfigInfo` returned `6001` with no `expMsg`. They are listed here for
-completeness only — the library does not implement them.
+They're here so nobody else has to go digging through the portal to work out what the missing two
+are. The library doesn't implement them.
 
 ---
 
@@ -182,12 +180,12 @@ against the live API:
 | `getMeterOffsetConfigInfo` is a POST | **GET only** | POST returns `405`, GET returns a `code` body |
 | *(this document, before 0.0.21)* an empty period list is acceptable — "send `[]`, not `null`" | **wrong** — `[]` is rejected with `6001 "time list is null"` | live `setTimeChargeBySn` call |
 
-### The response envelope carries an undocumented `expMsg`
+### `expMsg` is worth reading
 
-Every response includes `expMsg`, which is `null` on success and on most failures, but carries a
-specific reason for some parameter errors — `"time list is null"` being the one that matters for
-`setTimeChargeBySn`. The generic `msg` ("Parameter error") does not say *which* parameter. Since
-0.0.21 the library logs `expMsg` and exposes it on `AlphaESSApiError.expMsg`.
+Every response carries an `expMsg` field. It's `null` most of the time, but on some parameter
+errors it's the only thing that tells you what you actually got wrong — `msg` just says
+"Parameter error" without naming the parameter, whereas `expMsg` says `"time list is null"`.
+Since 0.0.21 it gets logged, and it's on `AlphaESSApiError.expMsg`.
 
 ---
 
@@ -707,19 +705,19 @@ default, since most systems return `6017`.
 
 - Maximum **6 groups per day**, maximum **28 groups per week**.
 - Charge and discharge periods **must not overlap**.
-- Both lists are required and **neither may be empty**. Verified against the live API:
-  - `"dischargeTimeList": []` → `6001` with `expMsg: "time list is null"` — an empty list is
-    treated as null.
-  - omitting the key entirely → `10001 Parameter Error`.
-  - There is **no known way to express "no periods on this side"**. A `00:00`–`00:00` element
-    passes validation, but whether the device reads it as a zero-length window or as wrapping
-    midnight (i.e. all day) is unconfirmed, so it is not safe to use as a placeholder.
+- **Both lists need at least one period in them.** Sending `[]` gets you `6001` with
+  `expMsg: "time list is null"` — an empty list counts as null. Leaving the key out altogether
+  gets you `10001` instead.
 
-> **Validation runs before the permission check.** A structurally invalid payload returns `6001`
-> or `10001` even on a system that is not entitled to the endpoint at all. Only once the payload
-> is valid does the `6017` entitlement check apply. Do not read an early `6001` as proof that the
-> account has permission — captured live on a SMILE5-INV that returns `6017` for both the read
-> and the write.
+That last one is awkward if you only care about charging: there's no obvious way to say "I have
+no discharge periods". A `00:00`–`00:00` element does get past validation, but we don't know
+whether the device treats that as a zero-length window or as one that wraps midnight and runs all
+day, so it isn't safe to use as a filler.
+
+> **Validation happens before the permission check.** Send a malformed payload to a system that
+> isn't entitled to this endpoint and you'll still get `6001` or `10001` — `6017` only appears
+> once the payload is valid. So an early `6001` tells you nothing about whether your account has
+> access. Captured on a SMILE5-INV that returns `6017` for both the read and the write.
 
 **Returns:** `data` is `null`. Success is `code: 200`.
 

@@ -28,12 +28,12 @@ Things the official documentation gets wrong are corrected in
 
 ## Error handling
 
-By default an API-level failure (a non-`200` `code` in the response) is logged and the method
-returns `None`, while transport failures — connection resets, timeouts, non-2xx HTTP — raise.
+By default, if the API answers with a non-`200` `code` the method logs it and returns `None`.
+Transport failures — connection resets, timeouts, non-2xx HTTP — raise instead.
 
-That default makes a successful write indistinguishable from a rejected one, because the write
-endpoints answer with `data: null` either way. If you need to tell them apart, construct the
-client with `raise_on_error=True`:
+The catch is that this makes a successful write look identical to a rejected one, since the write
+endpoints answer with `data: null` either way. If you need to tell them apart, build the client
+with `raise_on_error=True`:
 
 ```python
 from alphaess.alphaess import alphaess, AlphaESSApiError
@@ -46,10 +46,9 @@ except AlphaESSApiError as err:
     print(err.code, err.expMsg)   # e.g. 6001 "time list is null"
 ```
 
-Success is then signalled by the absence of an exception; return values are unchanged. The flag
-defaults to `False`, so upgrading does not alter existing behaviour. See
-[docs/RETURN_CODES.md](docs/RETURN_CODES.md#opting-in-to-exceptions--raise_on_error-0021) for the
-full exception reference.
+Success then just means nothing was raised — return values don't change. It's off by default, so
+upgrading won't alter how your existing code behaves. Full reference in
+[docs/RETURN_CODES.md](docs/RETURN_CODES.md#opting-in-to-exceptions--raise_on_error-0021).
 
 # Methods
 
