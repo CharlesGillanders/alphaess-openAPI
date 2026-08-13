@@ -249,6 +249,10 @@ except aiohttp.ClientError:
 The flag is off by default, so upgrading won't change anything unless you ask it to. Transport
 errors behave the same either way — they always propagate.
 
+`getdata()` is the one exception, and deliberately so. It stays best-effort even with the flag
+on: an endpoint your account can't use leaves that one key `None` instead of costing you the
+whole poll. Transport errors still stop it, since those affect every endpoint anyway.
+
 ### Transport-level errors → the exception propagates
 
 Connection resets, DNS failures, timeouts and non-2xx HTTP statuses (`raise_for_status` is set,

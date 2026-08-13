@@ -613,6 +613,21 @@ class alphaess:
             logger.error(e)
             raise
 
+    async def _best_effort(self, method, *args):
+        """Call an endpoint for getdata, tolerating a refusal.
+
+        getdata is best-effort by contract: it returns whatever it could
+        gather. With raise_on_error set that would otherwise stop dead on the
+        first endpoint this account cannot use, losing the rest of the data
+        too, so an API-level refusal leaves that one key empty instead.
+        Transport errors still propagate -- those affect every endpoint.
+        """
+        try:
+            return await method(*args)
+        except AlphaESSApiError as err:
+            logger.debug(f"{getattr(method, '__name__', method)} refused: {err}")
+            return None
+
     async def getdata(self, get_power=False, get_ev=False, self_delay=0, get_timecharge=False) -> Optional(list):
         """Get All Data For All serial numbers from Alpha ESS"""
         try:
@@ -631,7 +646,7 @@ class alphaess:
                         }
                     }
 
-            units = await self.getESSList()
+            units = await self._best_effort(self.getESSList)
             if units is None:
                 logger.warning(
                     "getESSList returned no data (Alpha ESS API busy or unavailable); "
@@ -641,32 +656,32 @@ class alphaess:
             for idx, unit in enumerate(units):
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
-                    unit['SumData'] = await self.getSumDataForCustomer(serial)
+                    unit['SumData'] = await self._best_effort(self.getSumDataForCustomer, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial, time.strftime("%Y-%m-%d"))
+                    unit['OneDateEnergy'] = await self._best_effort(self.getOneDateEnergyBySn, serial, time.strftime("%Y-%m-%d"))
                     await asyncio.sleep(self_delay)
 
-                    unit['LastPower'] = await self.getLastPowerData(serial)
+                    unit['LastPower'] = await self._best_effort(self.getLastPowerData, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
+                    unit['ChargeConfig'] = await self._best_effort(self.getChargeConfigInfo, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
+                    unit['DisChargeConfig'] = await self._best_effort(self.getDisChargeConfigInfo, serial)
                     await asyncio.sleep(self_delay)
 
                     if get_power:
                         await asyncio.sleep(self_delay)
-                        unit['OneDayPower'] = await self.getOneDayPowerBySn(serial, time.strftime("%Y-%m-%d"))
+                        unit['OneDayPower'] = await self._best_effort(self.getOneDayPowerBySn, serial, time.strftime("%Y-%m-%d"))
 
                     if get_timecharge:
                         await asyncio.sleep(self_delay)
-                        unit['TimeCharge'] = await self.getTimeChargeBySn(serial)
+                        unit['TimeCharge'] = await self._best_effort(self.getTimeChargeBySn, serial)
 
                     if get_ev:
                         await asyncio.sleep(self_delay)
-                        unit['EVData'] = await self.getEvChargerConfigList(serial)
+                        unit['EVData'] = await self._best_effort(self.getEvChargerConfigList, serial)
                         await asyncio.sleep(self_delay)
                         try:
                             ev_serial = unit['EVData'][0].get('evchargerSn', None)
