@@ -23,8 +23,32 @@ transcribed from the portal and verified endpoint by endpoint against the live A
 + **[docs/RETURN_CODES.md](docs/RETURN_CODES.md)** — the complete return code table (both pages
   of the portal's paginated list), grouped by cause, plus codes the portal does not publish.
 
-Four things the official documentation gets wrong are corrected in
+Things the official documentation gets wrong are corrected in
 [docs/API.md](docs/API.md#corrections-to-the-official-documentation).
+
+## Error handling
+
+By default, if the API answers with a non-`200` `code` the method logs it and returns `None`.
+Transport failures — connection resets, timeouts, non-2xx HTTP — raise instead.
+
+The catch is that this makes a successful write look identical to a rejected one, since the write
+endpoints answer with `data: null` either way. If you need to tell them apart, build the client
+with `raise_on_error=True`:
+
+```python
+from alphaess.alphaess import alphaess, AlphaESSApiError
+
+client = alphaess(appID, appSecret, raise_on_error=True)
+
+try:
+    await client.setTimeChargeBySn(sysSn, 0, charge_list, discharge_list)
+except AlphaESSApiError as err:
+    print(err.code, err.expMsg)   # e.g. 6001 "time list is null"
+```
+
+Success then just means nothing was raised — return values don't change. It's off by default, so
+upgrading won't alter how your existing code behaves. Full reference in
+[docs/RETURN_CODES.md](docs/RETURN_CODES.md#opting-in-to-exceptions--raise_on_error-0021).
 
 # Methods
 

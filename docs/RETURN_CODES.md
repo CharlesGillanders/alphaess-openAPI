@@ -144,6 +144,22 @@ Observed in production but absent from the portal's Return Code Description page
 | Code | Message | Cause |
 |:--|:--|:--|
 | `6017` | `No operation permissions` | Your AppID is bound to the SN, but the account tier or the hardware is not entitled to this endpoint. Confirmed on `getTimeChargeBySn` against two bound SMILE5 systems; the same call with an unbound SN returned `6005` instead, proving the binding check passes first and the entitlement check fails second. Handle it as "feature unavailable for this system", not as an error to retry. |
+| `10001` | `Parameter Error` | The request body was malformed, as opposed to `6001` which is a valid body with a bad value in it. Seen on `setTimeChargeBySn` when `dischargeTimeList` was left out entirely. Two things to watch: the capitalisation differs from `6001`'s `Parameter error`, and it's outside the `6xxx` range, so anything assuming `6000 <= code <= 6099` will miss it. |
+
+### Errors come back in a particular order
+
+Parameters get validated before permissions. If your payload is malformed you'll get `6001` or
+`10001` even on a system that has no access to the endpoint at all — `6017` only shows up once
+the payload is valid. Here's the same endpoint on the same SMILE5-INV, three times:
+
+| Request | Response |
+|:--|:--|
+| `dischargeTimeList: []` | `6001` — `expMsg: "time list is null"` |
+| `dischargeTimeList` omitted | `10001` |
+| both lists valid | `6017` |
+
+So getting a `6001` back doesn't mean your account has permission — it just means you never got
+far enough to find out.
 
 ---
 
@@ -199,6 +215,43 @@ Two consequences worth knowing:
 - **`None` from a write is ambiguous.** Most writes return `code: 200` with `data: null` on
   success, and the wrappers also return `None` on failure. To confirm a write landed, either
   watch the log or read the value back with the corresponding `get` endpoint.
+
+### Opting in to exceptions — `raise_on_error` (0.0.21+)
+
+Both of those go away if you build the client with `raise_on_error=True`. API-level failures then
+raise `AlphaESSApiError` with the code attached, and success just means nothing was raised —
+which is the only way to confirm a write on the endpoints that return `data: null` either way.
+
+```python
+from alphaess.alphaess import alphaess, AlphaESSApiError
+
+client = alphaess(appID, appSecret, raise_on_error=True)
+
+try:
+    await client.setTimeChargeBySn(sysSn, 0, charge_list, discharge_list)
+except AlphaESSApiError as err:
+    if err.code == 6017:
+        ...  # not entitled to the periodic API — stop trying
+    else:
+        ...  # err.expMsg often says which parameter was wrong
+except aiohttp.ClientError:
+    ...      # transport failure — back off and retry
+```
+
+| Attribute | Description |
+|:--|:--|
+| `code` | The `code` field, e.g. `6001` |
+| `msg` | The `msg` (or `info`) field. Localised, so don't branch on it |
+| `expMsg` | Exception detail, e.g. `"time list is null"` — often the only thing naming the bad parameter |
+| `description` | The English description from `RETURN_CODES` / `UNDOCUMENTED_RETURN_CODES`, if we know the code |
+| `path` | The URL that was called |
+
+The flag is off by default, so upgrading won't change anything unless you ask it to. Transport
+errors behave the same either way — they always propagate.
+
+`getdata()` is the one exception, and deliberately so. It stays best-effort even with the flag
+on: an endpoint your account can't use leaves that one key `None` instead of costing you the
+whole poll. Transport errors still stop it, since those affect every endpoint anyway.
 
 ### Transport-level errors → the exception propagates
 

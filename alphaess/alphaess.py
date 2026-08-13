@@ -37,7 +37,37 @@ RETURN_CODES = {
 # RETURN_CODES stays a faithful copy of the documented table.
 UNDOCUMENTED_RETURN_CODES = {
     6017: "No operation permissions",
+    10001: "Parameter error (malformed request body, e.g. a required list omitted)",
 }
+
+
+class AlphaESSApiError(Exception):
+    """The API answered, and said no.
+
+    Only raised if you built the client with ``raise_on_error=True``. Otherwise
+    an API-level failure still returns ``None``, same as it always has.
+
+    Not the same thing as the aiohttp transport errors: we reached the service
+    and it rejected the request, so sending it again unchanged won't help.
+    """
+
+    def __init__(self, code, msg=None, expMsg=None, path=None, description=None):
+        self.code = code
+        self.msg = msg
+        self.expMsg = expMsg
+        self.path = path
+        self.description = description
+
+        detail = f"{code}"
+        if description:
+            detail += f" ({description})"
+        if msg:
+            detail += f": {msg}"
+        if expMsg:
+            detail += f" - {expMsg}"
+        if path:
+            detail += f" when calling {path}"
+        super().__init__(detail)
 
 
 class alphaess:
@@ -50,9 +80,17 @@ class alphaess:
             session: aiohttp.ClientSession | None = None,
             timeout: int = 30,
             ipaddress=None,
-            verify_ssl=True
+            verify_ssl=True,
+            raise_on_error: bool = False
     ) -> None:
-        """Initialize."""
+        """Initialize.
+
+        raise_on_error goes last in the signature so existing positional callers
+        keep working. Leave it False and API-level failures return None like they
+        always have. Turn it on and they raise AlphaESSApiError instead, which is
+        the only way to tell a successful write from a rejected one — the write
+        endpoints answer with ``data: null`` whichever way it went.
+        """
         self.appID = appID
         self.appSecret = appSecret
         self.accesstoken = None
@@ -64,6 +102,7 @@ class alphaess:
         self.timeout = timeout
         self.ipaddress = ipaddress
         self.verify_ssl = verify_ssl
+        self.raise_on_error = raise_on_error
 
     async def close(self) -> None:
         """Close the AlphaESS API client."""
@@ -104,6 +143,28 @@ class alphaess:
         description = RETURN_CODES.get(code) or UNDOCUMENTED_RETURN_CODES.get(code)
         return f" ({description})" if description else ""
 
+    def __handle_failure(self, json_response, path) -> None:
+        """Log an API-level failure, and raise it if raise_on_error is set.
+
+        Returns normally otherwise, so the caller goes on to return None and
+        nothing changes for anyone who hasn't opted in.
+        """
+        expMsg = json_response.get("expMsg")
+        logger.error(
+            f"Unexpected json_response : {json_response}"
+            f"{self.__return_code_description(json_response)}"
+            f"{f' - {expMsg}' if expMsg else ''} when calling {path}")
+
+        if self.raise_on_error:
+            code = json_response.get("code")
+            raise AlphaESSApiError(
+                code=code,
+                msg=json_response.get("msg") or json_response.get("info"),
+                expMsg=expMsg,
+                path=path,
+                description=RETURN_CODES.get(code) or UNDOCUMENTED_RETURN_CODES.get(code),
+            )
+
     async def getESSList(self) -> Optional(list):
         """According to SN to get system list data"""
         try:
@@ -113,6 +174,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -126,6 +189,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -141,6 +206,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -154,6 +221,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -169,6 +238,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -182,6 +253,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -195,6 +268,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -208,6 +283,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -226,6 +303,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -239,6 +318,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -252,6 +333,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -271,6 +354,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -289,6 +374,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -302,6 +389,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -319,6 +408,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -343,6 +434,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -367,6 +460,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -380,6 +475,8 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -415,6 +512,8 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -465,17 +564,19 @@ class alphaess:
                     logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
                 if not self.__is_success(json_response):
-                    logger.error(
-                        f"Unexpected json_response : {json_response}"
-                        f"{self.__return_code_description(json_response)} when calling {path}")
+                    self.__handle_failure(json_response, path)
                     return None
                 else:
                     if json_response["data"] is not None:
                         return json_response["data"]
                     else:
-                        logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                        # Succeeded, just had nothing to give us. Not an error.
+                        logger.debug(
+                            f"Successful but empty json_response : {json_response} when calling {path}")
                     return None
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -503,14 +604,29 @@ class alphaess:
             if self.__is_success(json_response):
                 return json_response["data"]
 
-            logger.error(
-                f"Unexpected json_response : {json_response}"
-                f"{self.__return_code_description(json_response)} when calling {path}")
+            self.__handle_failure(json_response, path)
             return None
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise
+
+    async def _best_effort(self, method, *args):
+        """Call an endpoint for getdata, tolerating a refusal.
+
+        getdata is best-effort by contract: it returns whatever it could
+        gather. With raise_on_error set that would otherwise stop dead on the
+        first endpoint this account cannot use, losing the rest of the data
+        too, so an API-level refusal leaves that one key empty instead.
+        Transport errors still propagate -- those affect every endpoint.
+        """
+        try:
+            return await method(*args)
+        except AlphaESSApiError as err:
+            logger.debug(f"{getattr(method, '__name__', method)} refused: {err}")
+            return None
 
     async def getdata(self, get_power=False, get_ev=False, self_delay=0, get_timecharge=False) -> Optional(list):
         """Get All Data For All serial numbers from Alpha ESS"""
@@ -530,7 +646,7 @@ class alphaess:
                         }
                     }
 
-            units = await self.getESSList()
+            units = await self._best_effort(self.getESSList)
             if units is None:
                 logger.warning(
                     "getESSList returned no data (Alpha ESS API busy or unavailable); "
@@ -540,32 +656,32 @@ class alphaess:
             for idx, unit in enumerate(units):
                 if "sysSn" in unit:
                     serial = unit["sysSn"]
-                    unit['SumData'] = await self.getSumDataForCustomer(serial)
+                    unit['SumData'] = await self._best_effort(self.getSumDataForCustomer, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['OneDateEnergy'] = await self.getOneDateEnergyBySn(serial, time.strftime("%Y-%m-%d"))
+                    unit['OneDateEnergy'] = await self._best_effort(self.getOneDateEnergyBySn, serial, time.strftime("%Y-%m-%d"))
                     await asyncio.sleep(self_delay)
 
-                    unit['LastPower'] = await self.getLastPowerData(serial)
+                    unit['LastPower'] = await self._best_effort(self.getLastPowerData, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['ChargeConfig'] = await self.getChargeConfigInfo(serial)
+                    unit['ChargeConfig'] = await self._best_effort(self.getChargeConfigInfo, serial)
                     await asyncio.sleep(self_delay)
 
-                    unit['DisChargeConfig'] = await self.getDisChargeConfigInfo(serial)
+                    unit['DisChargeConfig'] = await self._best_effort(self.getDisChargeConfigInfo, serial)
                     await asyncio.sleep(self_delay)
 
                     if get_power:
                         await asyncio.sleep(self_delay)
-                        unit['OneDayPower'] = await self.getOneDayPowerBySn(serial, time.strftime("%Y-%m-%d"))
+                        unit['OneDayPower'] = await self._best_effort(self.getOneDayPowerBySn, serial, time.strftime("%Y-%m-%d"))
 
                     if get_timecharge:
                         await asyncio.sleep(self_delay)
-                        unit['TimeCharge'] = await self.getTimeChargeBySn(serial)
+                        unit['TimeCharge'] = await self._best_effort(self.getTimeChargeBySn, serial)
 
                     if get_ev:
                         await asyncio.sleep(self_delay)
-                        unit['EVData'] = await self.getEvChargerConfigList(serial)
+                        unit['EVData'] = await self._best_effort(self.getEvChargerConfigList, serial)
                         await asyncio.sleep(self_delay)
                         try:
                             ev_serial = unit['EVData'][0].get('evchargerSn', None)
@@ -583,6 +699,8 @@ class alphaess:
 
             return alldata
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -604,6 +722,8 @@ class alphaess:
                     success = True
             return success
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -626,6 +746,8 @@ class alphaess:
             logger.debug(f"Trying to call {resource} with settings {settings}")
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -648,6 +770,8 @@ class alphaess:
             logger.debug(f"Trying to call {resource} with settings {settings}")
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            raise
         except Exception as e:
             logger.error(e)
             raise

@@ -146,13 +146,29 @@ Interfaces 1–17 are numbered as the portal numbers them (`interface_id` 1–17
 charge/discharge pair carries portal ids `110000000000000` and `110000000000001`.
 
 **The method is enforced.** Calling an endpoint with the other verb returns a plain HTTP `405`
-with no `code` field.
+with no `code` field. This is also a reliable way to tell an endpoint that exists from one that
+does not: an unknown path returns `404`, a real path called with the wrong verb returns `405`.
+
+### Two endpoints you can't reach
+
+There are 21 endpoints in the portal, not 19. The other two are for meter offset, and they only
+show up in the commercial & industrial document — the portal splits its endpoints across three
+documents (standard, third-party institutions, and C&I) and a normal developer account only gets
+the standard one.
+
+| Portal id | Endpoint | Method | Parameters |
+|:--|:--|:--|:--|
+| 20 | `getMeterOffsetConfigInfo` | **GET** — the portal says POST, which just `405`s | `sysSn` |
+| 21 | `updateMeterOffsetConfigInfo` | POST | `sysSn`, `pmOffset` (0.1 kW units, −500…500 kW, default 0), `pmOffsetEn` (1/0), `pmOffsetS1`/`E1`, `pmOffsetS2`/`E2` |
+
+They're here so nobody else has to go digging through the portal to work out what the missing two
+are. The library doesn't implement them.
 
 ---
 
 ## Corrections to the official documentation
 
-Four points where the portal (or the bundled Postman collection) is wrong, each confirmed
+Points where the portal (or the bundled Postman collection) is wrong, each confirmed
 against the live API:
 
 | Source says | Actual behaviour | How it was confirmed |
@@ -160,7 +176,16 @@ against the live API:
 | `getVerificationCode` takes a JSON body ("request parameter (Json)") | **GET only**, query-string parameters | POST returns HTTP `405 Method Not Allowed` |
 | `bindSn` is a GET with query parameters *(Postman collection)* | **POST only**, JSON body | GET returns HTTP `405 Method Not Allowed` |
 | `getOneDayPowerBySn` returns `cobat` and `pChargingPile` | returns **`cbat`** and **`pchargingPile`** | live response inspection |
-| 19 return codes exist | at least one more — **`6017 No operation permissions`** | returned by `getTimeChargeBySn` |
+| 19 return codes exist | at least two more — **`6017`** and **`10001`** | `6017` from `getTimeChargeBySn`, `10001` from `setTimeChargeBySn` with a list omitted |
+| `getMeterOffsetConfigInfo` is a POST | **GET only** | POST returns `405`, GET returns a `code` body |
+| *(this document, before 0.0.21)* an empty period list is acceptable — "send `[]`, not `null`" | **wrong** — `[]` is rejected with `6001 "time list is null"` | live `setTimeChargeBySn` call |
+
+### `expMsg` is worth reading
+
+Every response carries an `expMsg` field. It's `null` most of the time, but on some parameter
+errors it's the only thing that tells you what you actually got wrong — `msg` just says
+"Parameter error" without naming the parameter, whereas `expMsg` says `"time list is null"`.
+Since 0.0.21 it gets logged, and it's on `AlphaESSApiError.expMsg`.
 
 ---
 
@@ -680,7 +705,19 @@ default, since most systems return `6017`.
 
 - Maximum **6 groups per day**, maximum **28 groups per week**.
 - Charge and discharge periods **must not overlap**.
-- Both lists are required even if empty — send `[]`, not `null`.
+- **Both lists need at least one period in them.** Sending `[]` gets you `6001` with
+  `expMsg: "time list is null"` — an empty list counts as null. Leaving the key out altogether
+  gets you `10001` instead.
+
+That last one is awkward if you only care about charging: there's no obvious way to say "I have
+no discharge periods". A `00:00`–`00:00` element does get past validation, but we don't know
+whether the device treats that as a zero-length window or as one that wraps midnight and runs all
+day, so it isn't safe to use as a filler.
+
+> **Validation happens before the permission check.** Send a malformed payload to a system that
+> isn't entitled to this endpoint and you'll still get `6001` or `10001` — `6017` only appears
+> once the payload is valid. So an early `6001` tells you nothing about whether your account has
+> access. Captured on a SMILE5-INV that returns `6017` for both the read and the write.
 
 **Returns:** `data` is `null`. Success is `code: 200`.
 
