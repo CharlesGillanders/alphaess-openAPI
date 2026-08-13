@@ -146,13 +146,31 @@ Interfaces 1–17 are numbered as the portal numbers them (`interface_id` 1–17
 charge/discharge pair carries portal ids `110000000000000` and `110000000000001`.
 
 **The method is enforced.** Calling an endpoint with the other verb returns a plain HTTP `405`
-with no `code` field.
+with no `code` field. This is also a reliable way to tell an endpoint that exists from one that
+does not: an unknown path returns `404`, a real path called with the wrong verb returns `405`.
+
+### Endpoints that exist but are not in this list
+
+The portal's interface registry holds **21** interfaces, but a standard developer account is
+scoped to the 19 above. The registry groups interfaces into three documents — 标准文档 (standard,
+"for ordinary end users"), 第三方机构专用文档 (third-party institutions), and 工商业定制文档
+(commercial & industrial, added 2024-10-29) — and two meter-offset endpoints appear **only** in
+the commercial & industrial document:
+
+| Portal id | Endpoint | Method | Notes |
+|:--|:--|:--|:--|
+| 20 | `getMeterOffsetConfigInfo` | **GET** | Portal documents it as POST, which returns `405`. Its parameter table is copy-pasted from the setter and lists write fields on a read. |
+| 21 | `updateMeterOffsetConfigInfo` | POST | `sysSn`, `pmOffset` (0.1 kW units, −500…500 kW, default 0), `pmOffsetEn` (1/0), `pmOffsetS1`/`E1`, `pmOffsetS2`/`E2` |
+
+Both are unusable from a standard account: every parameter combination tried against
+`getMeterOffsetConfigInfo` returned `6001` with no `expMsg`. They are listed here for
+completeness only — the library does not implement them.
 
 ---
 
 ## Corrections to the official documentation
 
-Four points where the portal (or the bundled Postman collection) is wrong, each confirmed
+Points where the portal (or the bundled Postman collection) is wrong, each confirmed
 against the live API:
 
 | Source says | Actual behaviour | How it was confirmed |
@@ -160,7 +178,16 @@ against the live API:
 | `getVerificationCode` takes a JSON body ("request parameter (Json)") | **GET only**, query-string parameters | POST returns HTTP `405 Method Not Allowed` |
 | `bindSn` is a GET with query parameters *(Postman collection)* | **POST only**, JSON body | GET returns HTTP `405 Method Not Allowed` |
 | `getOneDayPowerBySn` returns `cobat` and `pChargingPile` | returns **`cbat`** and **`pchargingPile`** | live response inspection |
-| 19 return codes exist | at least one more — **`6017 No operation permissions`** | returned by `getTimeChargeBySn` |
+| 19 return codes exist | at least two more — **`6017`** and **`10001`** | `6017` from `getTimeChargeBySn`, `10001` from `setTimeChargeBySn` with a list omitted |
+| `getMeterOffsetConfigInfo` is a POST | **GET only** | POST returns `405`, GET returns a `code` body |
+| *(this document, before 0.0.21)* an empty period list is acceptable — "send `[]`, not `null`" | **wrong** — `[]` is rejected with `6001 "time list is null"` | live `setTimeChargeBySn` call |
+
+### The response envelope carries an undocumented `expMsg`
+
+Every response includes `expMsg`, which is `null` on success and on most failures, but carries a
+specific reason for some parameter errors — `"time list is null"` being the one that matters for
+`setTimeChargeBySn`. The generic `msg` ("Parameter error") does not say *which* parameter. Since
+0.0.21 the library logs `expMsg` and exposes it on `AlphaESSApiError.expMsg`.
 
 ---
 
@@ -680,7 +707,19 @@ default, since most systems return `6017`.
 
 - Maximum **6 groups per day**, maximum **28 groups per week**.
 - Charge and discharge periods **must not overlap**.
-- Both lists are required even if empty — send `[]`, not `null`.
+- Both lists are required and **neither may be empty**. Verified against the live API:
+  - `"dischargeTimeList": []` → `6001` with `expMsg: "time list is null"` — an empty list is
+    treated as null.
+  - omitting the key entirely → `10001 Parameter Error`.
+  - There is **no known way to express "no periods on this side"**. A `00:00`–`00:00` element
+    passes validation, but whether the device reads it as a zero-length window or as wrapping
+    midnight (i.e. all day) is unconfirmed, so it is not safe to use as a placeholder.
+
+> **Validation runs before the permission check.** A structurally invalid payload returns `6001`
+> or `10001` even on a system that is not entitled to the endpoint at all. Only once the payload
+> is valid does the `6017` entitlement check apply. Do not read an early `6001` as proof that the
+> account has permission — captured live on a SMILE5-INV that returns `6017` for both the read
+> and the write.
 
 **Returns:** `data` is `null`. Success is `code: 200`.
 

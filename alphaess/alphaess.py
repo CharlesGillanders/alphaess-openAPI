@@ -37,7 +37,38 @@ RETURN_CODES = {
 # RETURN_CODES stays a faithful copy of the documented table.
 UNDOCUMENTED_RETURN_CODES = {
     6017: "No operation permissions",
+    10001: "Parameter error (malformed request body, e.g. a required list omitted)",
 }
+
+
+class AlphaESSApiError(Exception):
+    """The API answered, but reported a failure.
+
+    Only raised when the client was created with ``raise_on_error=True``. By
+    default an API-level failure still returns ``None``, exactly as it did in
+    0.0.20 and earlier.
+
+    Distinct from the aiohttp transport exceptions: this means the service was
+    reached and rejected the request, so retrying unchanged will not help.
+    """
+
+    def __init__(self, code, msg=None, expMsg=None, path=None, description=None):
+        self.code = code
+        self.msg = msg
+        self.expMsg = expMsg
+        self.path = path
+        self.description = description
+
+        detail = f"{code}"
+        if description:
+            detail += f" ({description})"
+        if msg:
+            detail += f": {msg}"
+        if expMsg:
+            detail += f" - {expMsg}"
+        if path:
+            detail += f" when calling {path}"
+        super().__init__(detail)
 
 
 class alphaess:
@@ -50,9 +81,17 @@ class alphaess:
             session: aiohttp.ClientSession | None = None,
             timeout: int = 30,
             ipaddress=None,
-            verify_ssl=True
+            verify_ssl=True,
+            raise_on_error: bool = False
     ) -> None:
-        """Initialize."""
+        """Initialize.
+
+        raise_on_error is opt-in and appended last so existing positional
+        callers are unaffected. Left False, API-level failures return None just
+        as they always have. Set True to have them raise AlphaESSApiError
+        instead, which is the only way to tell a successful write from a
+        rejected one: the write endpoints answer with ``data: null`` either way.
+        """
         self.appID = appID
         self.appSecret = appSecret
         self.accesstoken = None
@@ -64,6 +103,7 @@ class alphaess:
         self.timeout = timeout
         self.ipaddress = ipaddress
         self.verify_ssl = verify_ssl
+        self.raise_on_error = raise_on_error
 
     async def close(self) -> None:
         """Close the AlphaESS API client."""
@@ -104,6 +144,28 @@ class alphaess:
         description = RETURN_CODES.get(code) or UNDOCUMENTED_RETURN_CODES.get(code)
         return f" ({description})" if description else ""
 
+    def __handle_failure(self, json_response, path) -> None:
+        """Log an API-level failure, and raise it in strict mode.
+
+        Returns normally in the default mode so the caller can go on to return
+        None, preserving the pre-0.0.21 contract.
+        """
+        expMsg = json_response.get("expMsg")
+        logger.error(
+            f"Unexpected json_response : {json_response}"
+            f"{self.__return_code_description(json_response)}"
+            f"{f' - {expMsg}' if expMsg else ''} when calling {path}")
+
+        if self.raise_on_error:
+            code = json_response.get("code")
+            raise AlphaESSApiError(
+                code=code,
+                msg=json_response.get("msg") or json_response.get("info"),
+                expMsg=expMsg,
+                path=path,
+                description=RETURN_CODES.get(code) or UNDOCUMENTED_RETURN_CODES.get(code),
+            )
+
     async def getESSList(self) -> Optional(list):
         """According to SN to get system list data"""
         try:
@@ -113,6 +175,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -126,6 +191,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -141,6 +209,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -154,6 +225,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -169,6 +243,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -182,6 +259,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -195,6 +275,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -208,6 +291,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -226,6 +312,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -239,6 +328,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -252,6 +344,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -271,6 +366,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -289,6 +387,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -302,6 +403,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -319,6 +423,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -343,6 +450,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -367,6 +477,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -380,6 +493,9 @@ class alphaess:
 
             return await self.api_get(resource)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -415,6 +531,9 @@ class alphaess:
 
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(f"Error: {e} when calling {resource}")
             raise
@@ -465,17 +584,21 @@ class alphaess:
                     logger.error(f"Unexpected response received: {response.status} when calling {path}")
 
                 if not self.__is_success(json_response):
-                    logger.error(
-                        f"Unexpected json_response : {json_response}"
-                        f"{self.__return_code_description(json_response)} when calling {path}")
+                    self.__handle_failure(json_response, path)
                     return None
                 else:
                     if json_response["data"] is not None:
                         return json_response["data"]
                     else:
-                        logger.error(f"Unexpected json_response : {json_response} when calling {path}")
+                        # A successful response that simply carries no payload.
+                        # Not an error, so log it at debug rather than error.
+                        logger.debug(
+                            f"Successful but empty json_response : {json_response} when calling {path}")
                     return None
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -503,11 +626,12 @@ class alphaess:
             if self.__is_success(json_response):
                 return json_response["data"]
 
-            logger.error(
-                f"Unexpected json_response : {json_response}"
-                f"{self.__return_code_description(json_response)} when calling {path}")
+            self.__handle_failure(json_response, path)
             return None
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -583,6 +707,9 @@ class alphaess:
 
             return alldata
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -604,6 +731,9 @@ class alphaess:
                     success = True
             return success
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -626,6 +756,9 @@ class alphaess:
             logger.debug(f"Trying to call {resource} with settings {settings}")
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
@@ -648,6 +781,9 @@ class alphaess:
             logger.debug(f"Trying to call {resource} with settings {settings}")
             return await self.api_post(resource, settings)
 
+        except AlphaESSApiError:
+            # Already logged by __handle_failure; don't log it a second time.
+            raise
         except Exception as e:
             logger.error(e)
             raise
